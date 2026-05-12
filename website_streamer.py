@@ -501,7 +501,43 @@ class WebsiteStreamer:
             try:
                 browser = await p.chromium.launch(headless=True)
             except PlaywrightError as e:
-                raise RuntimeError("Chromium is not installed. Run: python -m playwright install chromium") from e
+                if "Executable doesn't exist" in str(e) or "install chromium" in str(e).lower():
+                    self._status("Status: Installing Chromium...", "orange")
+                    self._log("Chromium not found. Auto-installing Chromium... (This only happens once and may take a few minutes)")
+                    
+                    try:
+                        import subprocess
+                        import sys
+                        from playwright._impl._driver import compute_driver_executable, get_driver_env
+                        
+                        driver_executable, driver_cli = compute_driver_executable()
+                        process = subprocess.Popen(
+                            [driver_executable, driver_cli, "install", "chromium"], 
+                            env=get_driver_env(),
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.STDOUT,
+                            text=True,
+                            bufsize=1,
+                            # Important for PyInstaller frozen environment:
+                            # Avoid creating new console windows on Windows
+                            creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
+                        )
+                        
+                        for line in iter(process.stdout.readline, ''):
+                            if line:
+                                self._log(f"Installer: {line.strip()}")
+                        
+                        process.wait()
+                        if process.returncode != 0:
+                            raise RuntimeError(f"Playwright install failed (code {process.returncode})")
+                            
+                        self._log("Chromium installed successfully! Launching browser...")
+                        browser = await p.chromium.launch(headless=True)
+                        
+                    except Exception as install_e:
+                        raise RuntimeError(f"Could not auto-install Chromium: {install_e}") from install_e
+                else:
+                    raise RuntimeError(f"Failed to launch Chromium: {e}") from e
 
             try:
                 page = await browser.new_page(viewport={"width": self.width, "height": self.height})
