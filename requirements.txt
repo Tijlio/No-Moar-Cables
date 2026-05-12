@@ -1,6 +1,7 @@
 customtkinter
 catt
 Pillow
+playwright
 pychromecast
 zeroconf
 pyinstaller

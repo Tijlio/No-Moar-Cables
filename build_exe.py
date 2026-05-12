@@ -61,6 +61,8 @@ def main():
         "zeroconf",
         "--collect-all",
         "PIL",
+        "--collect-all",
+        "playwright",
         "--hidden-import",
         "PIL._tkinter_finder",
     ]
