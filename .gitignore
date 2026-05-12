@@ -1,0 +1,21 @@
+# Environments
+venv/
+.venv/
+env/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Config and local state
+config.json
+
+# Build artifacts
+build/
+dist/
+*.spec
+
+# IDEs
+.vscode/
+.idea/

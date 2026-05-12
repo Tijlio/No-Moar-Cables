@@ -1,0 +1,6 @@
+customtkinter
+catt
+Pillow
+pychromecast
+zeroconf
+pyinstaller
