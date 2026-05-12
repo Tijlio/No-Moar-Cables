@@ -1,77 +1,133 @@
-# NO MORE CABLES!! 🚀 (Auto-Caster v2)
+# NO MORE CABLES!! 🚀
 
-A premium, automated casting utility for Sony TVs and Chromecasts. Designed to keep a specific URL (like a dashboard or kiosk site) alive on your TV without the hassle of HDMI cables or manual intervention.
+## Auto-Caster v2
 
-## ✨ Features
+A small utility that keeps a URL casting to a TV.
 
-- **Device Discovery**: Instantly scan your network for available Chromecasts and Sony BRAVIA TVs
-- **Persistent Casting**: Automatically checks if the TV is online and ensures the site is casting. If the connection drops or the TV restarts, it pulls the site back up.
-- **Smart Sony Integration**: Specifically optimized to recognize and prioritize Sony BRAVIA TVs.
-- **Modern UI**: Built with `CustomTkinter` for a sleek, dark-mode-ready interface.
-- **Persistent Config**: Remembers your last used IP and URL so you can get started with one click.
+Useful for dashboards, kiosk pages, schedules, menus, or anything else that should stay visible without someone crawling behind a screen with an HDMI cable like it’s 2011.
 
-## 🛠️ Prerequisites
-
-- **Python 3.10+**
-- **catt (Cast All The Things)**: The engine behind the casting.
-- **Windows / Linux / macOS** (Tested primarily on Windows).
-
-## 🚀 Getting Started
-
-1. **Download the Executable**: If you just want to run the app, go to the `dist` folder and run `NoMoreCables.exe`. No Python installation is required!
-2. **Clone the repository** (for developers):
-
-   ```bash
-   git clone https://github.com/Waaslandia/waaslandia-cast-v2.git
-   cd waaslandia-cast-v2
-   ```
-
-   ```bash
-   git clone https://github.com/Waaslandia/waaslandia-cast-v2.git
-   cd waaslandia-cast-v2
-   ```
-
-3. **Setup Virtual Environment**:
-
-   ```bash
-   python -m venv venv
-   .\venv\Scripts\activate
-   ```
-
-4. **Install Dependencies**:
-
-   ```bash
-   pip install customtkinter catt pychromecast
-   ```
-
-5. **Run the App**:
-   ```bash
-   python app.py
-   ```
-
-## 📖 How to Use
-
-1. **Scan**: Click the **"Scan for TV"** button. The app will search your network for available devices.
-2. **Select**: If multiple devices are found, use the dropdown to select your target TV.
-3. **URL**: Enter the URL you want to cast (e.g., your business dashboard).
-4. **Go!**: Click **"Start Automation"**. The app will now ping the TV every 60 seconds and ensure your site stays visible.
-
-## 🔧 Under the Hood
-
-- **`app.py`**: The main application logic and GUI.
-- **`config.json`**: Stores your settings locally.
-- **`catt`**: Used for the heavy lifting of interacting with the Cast protocol.
-
-## 📦 Creating the Executable
-
-If you want to build the EXE yourself:
-
-1. Run the build script:
-   ```bash
-   python build_exe.py
-   ```
-2. The standalone file will be generated in the `dist/` folder.
+It works with Chromecasts and Sony BRAVIA TVs.
 
 ---
 
-_HDMI CABLES ARE SO 2022. Welcome to the future._
+## What it does
+
+- Finds available Chromecast / Sony TV devices on the network
+- Lets you pick the target TV
+- Casts a URL to it
+- Checks regularly whether the TV is still reachable
+- Restarts the cast if the TV drops, restarts, or forgets what it was doing
+- Remembers your last used TV IP and URL
+
+Basically: set it once, let it babysit the screen.
+
+---
+
+## For normal users
+
+Go to the `dist` folder and run:
+
+```bash
+NoMoreCables.exe
+```
+
+No Python setup needed. No terminal ceremony. Humanity briefly wins.
+
+---
+
+## For developers
+
+### Requirements
+
+- Python 3.10+
+- `catt`
+- `customtkinter`
+- `pychromecast`
+
+Tested mostly on Windows, but it should also work on Linux and macOS if the network gods are in a good mood.
+
+### Setup
+
+Clone the repo:
+
+```bash
+git clone https://github.com/Waaslandia/waaslandia-cast-v2.git
+cd waaslandia-cast-v2
+```
+
+Create and activate a virtual environment:
+
+```bash
+python -m venv venv
+.\venv\Scripts\activate
+```
+
+Install dependencies:
+
+```bash
+pip install customtkinter catt pychromecast
+```
+
+Run the app:
+
+```bash
+python app.py
+```
+
+---
+
+## How to use
+
+1. Click **Scan for TV**
+2. Pick the TV from the dropdown
+3. Enter the URL you want to show
+4. Click **Start Automation**
+
+The app will keep checking the TV and try to restore the cast if it drops.
+
+---
+
+## Files
+
+- `app.py`  
+  Main application and UI
+
+- `config.json`  
+  Stores the last used TV IP and URL locally
+
+- `build_exe.py`  
+  Builds the standalone Windows executable
+
+- `dist/`  
+  Contains the ready-to-run `.exe`
+
+---
+
+## Build the executable
+
+```bash
+python build_exe.py
+```
+
+The executable will appear in:
+
+```bash
+dist/
+```
+
+---
+
+## Notes
+
+This tool depends on your local network behaving like a civilized invention, which is never guaranteed.
+
+If discovery does not work, make sure:
+
+- The TV and computer are on the same network
+- The TV is powered on
+- Casting is enabled
+- Your firewall is not silently ruining your day
+
+---
+
+_HDMI cables had a good run. Then we automated their job._
