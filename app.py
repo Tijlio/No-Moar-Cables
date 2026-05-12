@@ -10,7 +10,7 @@ from io import StringIO
 from urllib.parse import urlparse
 
 import customtkinter as ctk
-from PIL import Image
+from PIL import Image, ImageEnhance
 
 from bravia_launcher import launch_bravia_web_url
 from catt.cli import cli as catt_cli
@@ -33,6 +33,8 @@ DEFAULT_CONFIG = {
     "native_browser_url": "snapshot_viewer",
     "bravia_psk": "",
     "stream_auto_accept": False,
+    "stream_theme": "auto",
+    "stream_pixel_shift": False,
 }
 
 stop_event = threading.Event()
@@ -68,7 +70,7 @@ def load_config():
         return DEFAULT_CONFIG.copy()
 
 
-def save_config(tv_ip, url, cast_mode, width, height, fps, auto_accept, psk, cast_method):
+def save_config(tv_ip, url, cast_mode, width, height, fps, auto_accept, psk, cast_method, theme, pixel_shift):
     current = load_config()
     with open(CONFIG_FILE, "w", encoding="utf-8") as f:
         json.dump(
@@ -85,6 +87,8 @@ def save_config(tv_ip, url, cast_mode, width, height, fps, auto_accept, psk, cas
                 "native_browser_url": current.get("native_browser_url", DEFAULT_CONFIG["native_browser_url"]),
                 "bravia_psk": psk,
                 "stream_auto_accept": auto_accept,
+                "stream_theme": theme,
+                "stream_pixel_shift": pixel_shift,
             },
             f,
             indent=2,
@@ -195,7 +199,9 @@ def set_inputs_enabled(enabled):
     configure_widget(stream_width_entry, state=state)
     configure_widget(stream_height_entry, state=state)
     configure_widget(stream_fps_entry, state=state)
+    configure_widget(stream_theme_menu, state=state)
     configure_widget(stream_auto_accept_checkbox, state=state)
+    configure_widget(stream_pixel_shift_checkbox, state=state)
     configure_widget(url_entry, state=state)
     configure_widget(scan_btn, state=state)
     configure_widget(mode_website, state=state)
@@ -351,6 +357,8 @@ def website_stream_loop(tv_ip, url):
             height=stream_config.get("stream_height", DEFAULT_CONFIG["stream_height"]),
             fps=stream_config.get("stream_fps", DEFAULT_CONFIG["stream_fps"]),
             auto_accept_prompts=stream_config.get("stream_auto_accept", False),
+            theme=stream_config.get("stream_theme", "auto"),
+            pixel_shift=stream_config.get("stream_pixel_shift", False),
             on_log=log,
             on_status=set_status,
             on_request=log_stream_request,
@@ -427,6 +435,8 @@ def native_browser_loop(tv_ip, url, bravia_psk):
             height=stream_config.get("stream_height", DEFAULT_CONFIG["stream_height"]),
             fps=stream_config.get("stream_fps", DEFAULT_CONFIG["stream_fps"]),
             auto_accept_prompts=stream_config.get("stream_auto_accept", False),
+            theme=stream_config.get("stream_theme", "auto"),
+            pixel_shift=stream_config.get("stream_pixel_shift", False),
             on_log=log,
             on_status=set_status,
             on_request=log_stream_request,
@@ -584,8 +594,10 @@ def start_app():
     fps = get_safe_int(stream_fps_entry, DEFAULT_CONFIG["stream_fps"])
     auto_accept = stream_auto_accept_var.get()
     cast_method = selected_stream_cast_method()
+    theme = stream_theme_var.get()
+    pixel_shift = stream_pixel_shift_var.get()
 
-    save_config(tv_ip, url, cast_mode, width, height, fps, auto_accept, bravia_psk, cast_method)
+    save_config(tv_ip, url, cast_mode, width, height, fps, auto_accept, bravia_psk, cast_method, theme, pixel_shift)
 
     stop_event.clear()
     active_tv_ip = tv_ip
@@ -670,19 +682,24 @@ config = load_config()
 title_label = ctk.CTkLabel(app, text="NO MORE CABLES!!", font=("Arial", 22, "bold"))
 title_label.pack(pady=(18, 8))
 
+# --- Layout Container ---
 try:
-    meme_img = ctk.CTkImage(
-        light_image=Image.open(resource_path("no-moar-cables.png")),
-        dark_image=Image.open(resource_path("no-moar-cables.png")),
-        size=(180, 180),
+    img = Image.open(resource_path("no-moar-cables.png")).convert("RGBA")
+    enhancer = ImageEnhance.Brightness(img)
+    img_dark = enhancer.enhance(0.15)  # 15% brightness, very dark for readability
+    
+    bg_image = ctk.CTkImage(
+        light_image=img_dark,
+        dark_image=img_dark,
+        size=(1920, 1080),
     )
-    meme_label = ctk.CTkLabel(app, image=meme_img, text="")
-    meme_label.pack(pady=(0, 12))
+    bg_label = ctk.CTkLabel(app, image=bg_image, text="")
+    bg_label.place(x=0, y=0, relwidth=1, relheight=1)
+    bg_label.lower()  # Send to back so it doesn't cover the title
 except Exception:
     pass
 
-# --- Layout Container ---
-main_content = ctk.CTkFrame(app, fg_color="transparent")
+main_content = ctk.CTkScrollableFrame(app, fg_color="transparent")
 main_content.pack(fill="both", expand=True, padx=30, pady=(0, 20))
 
 # Left Column (Controls)
@@ -809,7 +826,7 @@ stream_cast_snapshot_viewer = ctk.CTkRadioButton(
 stream_cast_snapshot_viewer.pack(side="left")
 
 # --- Stream Settings Group ---
-stream_settings_label = ctk.CTkLabel(form_frame, text="Stream Settings (Resolution/FPS):", font=("Arial", 12, "bold"))
+stream_settings_label = ctk.CTkLabel(form_frame, text="Stream Settings:", font=("Arial", 12, "bold"))
 stream_settings_label.pack(anchor="w", pady=(15, 0))
 
 stream_settings_frame = ctk.CTkFrame(form_frame, fg_color="transparent")
@@ -832,17 +849,43 @@ stream_height_entry.pack(side="left", padx=(5, 15))
 ctk.CTkLabel(stream_dims_frame, text="FPS:").pack(side="left")
 stream_fps_entry = ctk.CTkEntry(stream_dims_frame, width=40)
 stream_fps_entry.insert(0, str(config.get("stream_fps", 5)))
-stream_fps_entry.pack(side="left", padx=(5, 0))
+stream_fps_entry.pack(side="left", padx=(5, 15))
 
-# Row 2: Auto-accept checkbox
+# Row 2: Theme
+stream_theme_frame = ctk.CTkFrame(stream_settings_frame, fg_color="transparent")
+stream_theme_frame.pack(fill="x", pady=(5, 0))
+
+ctk.CTkLabel(stream_theme_frame, text="Theme:").pack(side="left")
+stream_theme_var = ctk.StringVar(value=config.get("stream_theme", "auto"))
+stream_theme_menu = ctk.CTkOptionMenu(
+    stream_theme_frame,
+    variable=stream_theme_var,
+    values=["auto", "dark", "light"],
+    width=80
+)
+stream_theme_menu.pack(side="left", padx=(5, 0))
+
+# Row 3: Checkboxes
+stream_checkboxes_frame = ctk.CTkFrame(stream_settings_frame, fg_color="transparent")
+stream_checkboxes_frame.pack(fill="x", pady=(10, 0))
+
 stream_auto_accept_var = ctk.BooleanVar(value=config.get("stream_auto_accept", False))
 stream_auto_accept_checkbox = ctk.CTkCheckBox(
-    stream_settings_frame,
-    text="Auto-accept prompts (cookies/allow)",
+    stream_checkboxes_frame,
+    text="Auto-accept prompts (cookies)",
     variable=stream_auto_accept_var,
     font=("Arial", 12)
 )
-stream_auto_accept_checkbox.pack(anchor="w", pady=(10, 0))
+stream_auto_accept_checkbox.pack(anchor="w")
+
+stream_pixel_shift_var = ctk.BooleanVar(value=config.get("stream_pixel_shift", False))
+stream_pixel_shift_checkbox = ctk.CTkCheckBox(
+    stream_checkboxes_frame,
+    text="Pixel shift (burn-in protection)",
+    variable=stream_pixel_shift_var,
+    font=("Arial", 12)
+)
+stream_pixel_shift_checkbox.pack(anchor="w", pady=(5, 0))
 
 status_label = ctk.CTkLabel(left_column, text="Status: Stopped", text_color="gray", font=("Arial", 14, "bold"))
 status_label.pack(pady=(15, 10))

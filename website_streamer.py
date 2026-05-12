@@ -59,6 +59,8 @@ class WebsiteStreamer:
         on_status=None,
         on_request=None,
         auto_accept_prompts=True,
+        theme="auto",
+        pixel_shift=False,
     ):
         self.url = url
         self.host = host
@@ -71,6 +73,8 @@ class WebsiteStreamer:
         self.on_status = on_status
         self.on_request = on_request
         self.auto_accept_prompts = auto_accept_prompts
+        self.theme = theme
+        self.pixel_shift = pixel_shift
 
         self.latest_frame = None
         self.frame_lock = threading.Lock()
@@ -501,6 +505,10 @@ class WebsiteStreamer:
 
             try:
                 page = await browser.new_page(viewport={"width": self.width, "height": self.height})
+                
+                if self.theme in ("dark", "light"):
+                    await page.emulate_media(color_scheme=self.theme)
+                    
                 try:
                     await page.goto(self.url, wait_until="networkidle", timeout=30000)
                 except PlaywrightTimeoutError:
@@ -510,6 +518,25 @@ class WebsiteStreamer:
 
                 if self.auto_accept_prompts:
                     await self._auto_accept_prompts(page)
+                    
+                if self.pixel_shift:
+                    self._log("Injecting pixel shift CSS for burn-in protection")
+                    css = """
+                    @keyframes pixelShiftOLED {
+                        0% { transform: translate(0px, 0px); }
+                        25% { transform: translate(3px, 2px); }
+                        50% { transform: translate(0px, 4px); }
+                        75% { transform: translate(-3px, 2px); }
+                        100% { transform: translate(0px, 0px); }
+                    }
+                    body {
+                        animation: pixelShiftOLED 120s linear infinite !important;
+                    }
+                    """
+                    try:
+                        await page.add_style_tag(content=css)
+                    except Exception as e:
+                        self._log(f"Failed to inject pixel shift: {e}")
 
                 delay = 1 / self.fps
                 while not self.stop_event.is_set():
